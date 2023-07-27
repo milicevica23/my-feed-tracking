@@ -1,26 +1,43 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use serde::Deserialize;
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!!!")
+
+struct Meal{
+    id: i32,
+    name: String,
+    ingridients: Vec<Ingridient>
+}
+#[derive(Deserialize)]
+struct Ingridient {
+    name: String
 }
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
+#[get("/ingridients")]
+async fn get_ingridients(ingridient: web::Json<Ingridient>) -> impl Responder {
+    HttpResponse::Ok().body(format!("{}",ingridient.name))
 }
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+#[post("/ingridients")]
+async fn post_ingridients() -> impl Responder {
+    HttpResponse::Ok().body("Hello worldS")
+}
+
+#[get("/meal")]
+async fn get_meal() -> impl Responder {
+    HttpResponse::Ok().body("Hello worldS")
+}
+
+#[post("/meal")]
+async fn insert_meal() -> impl Responder {
+    HttpResponse::Ok().body("Hello worldS")
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+            .service(get_meal)
+            .service(insert_meal)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
