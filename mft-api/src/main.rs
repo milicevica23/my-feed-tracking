@@ -1,16 +1,26 @@
 #![allow(unused)]
-use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
+use std::vec;
+
+use actix_cors::Cors;
+use actix_web::{
+    get,
+    middleware::Logger,
+    post,
+    web::{self, Json},
+    App, HttpResponse, HttpServer, Responder, Result,
+};
 use dotenv::dotenv;
 use env_logger::Env;
 use log::{debug, error, info, log_enabled, Level};
+use mft_domain::*;
 use serde::Deserialize;
 use sqlx::{pool, postgres::PgPoolOptions, PgPool, Pool};
-
 struct Meal {
     id: i32,
     name: String,
     ingridients: Vec<Ingridient>,
 }
+
 #[derive(Deserialize, Debug, sqlx::Type, sqlx::FromRow)]
 struct Ingridient {
     ing_name: String,
@@ -56,6 +66,33 @@ async fn insert_meal() -> impl Responder {
     HttpResponse::Ok().body("Hello worldS")
 }
 
+#[post("/feeling")]
+async fn inser_feeling(data: web::Data<AppState>, feeling: web::Json<Feeling>) -> impl Responder {
+    let result = sqlx::query("insert into mft_raw.feeling (id,name) values ($1, $2)")
+        .bind(&feeling.id)
+        .bind(&feeling.name)
+        .execute(&data.pool)
+        .await
+        .unwrap();
+    info!("{:?}", result);
+    HttpResponse::Ok().body("Hello worldS")
+}
+
+#[get("/feeling")]
+async fn get_feelings() -> Result<impl Responder> {
+    let response = vec![
+        Feeling {
+            id: 1,
+            name: "flying".to_string(),
+        },
+        Feeling {
+            id: 2,
+            name: "finger swallow".to_string(),
+        },
+    ];
+    Ok(web::Json(response))
+}
+
 struct AppState {
     pool: PgPool,
 }
@@ -77,10 +114,12 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(AppState { pool: pool.clone() }))
             .wrap(Logger::default())
             .service(get_ingridient)
             .service(post_ingridient)
+            .service(get_feelings)
             .service(get_meal)
             .service(insert_meal)
     })
