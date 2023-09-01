@@ -1,0 +1,8 @@
+[env]
+
+##Secrets
+
+SERVICE_DB_URL = "postgres://app_user:dev_only_pwd@localhost/mft"
+
+
+RUST_LOG = "mft_api=debug"
