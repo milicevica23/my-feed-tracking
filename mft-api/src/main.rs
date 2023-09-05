@@ -2,22 +2,30 @@
 
 mod config;
 mod crypt;
-mod error;
-//mod log;
 mod ctx;
+mod error;
+mod log;
 mod model;
 mod utils;
 mod web;
+pub use self::error::{Error, Result};
 use std::net::SocketAddr;
 
-use crate::model::ModelManager;
-use axum::{response::Html, routing::get, Router};
+use crate::web::mw_auth::{mw_ctx_require, mw_ctx_resolve};
+use crate::web::mw_res_map::mw_reponse_map;
+use crate::web::rpc;
+use crate::{
+    model::ModelManager,
+    web::{routes_login, routes_static},
+};
+use axum::{middleware, response::Html, routing::get, Router};
+use tower_cookies::CookieManagerLayer;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 pub mod _dev_utils;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .without_time() // For early local development.
         .with_target(false)
@@ -25,14 +33,27 @@ async fn main() {
         .init();
 
     _dev_utils::init_dev().await;
-    let mm = ModelManager::new();
+    let mm = ModelManager::new().await?;
 
-    let router_all = Router::new().route("/hello", get(|| async { Html("Hello world") }));
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    info!("->> LISTENING on {addr}");
+    // -- Define Routes
+    let routes_rpc = rpc::routes(mm.clone()).route_layer(middleware::from_fn(mw_ctx_require));
 
+    let routes_all = Router::new()
+        .merge(routes_login::routes(mm.clone()))
+        .nest("/api", routes_rpc)
+        .layer(middleware::map_response(mw_reponse_map))
+        .layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolve))
+        .layer(CookieManagerLayer::new())
+        .fallback_service(routes_static::serve_dir());
+
+    // region:    --- Start Server
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    info!("{:<12} - {addr}\n", "LISTENING");
     axum::Server::bind(&addr)
-        .serve(router_all.into_make_service())
+        .serve(routes_all.into_make_service())
         .await
-        .unwrap()
+        .unwrap();
+    // endregion: --- Start Server
+
+    Ok(())
 }

@@ -23,7 +23,7 @@ mod base;
 mod error;
 pub mod ingredient;
 mod store;
-//pub mod user;
+pub mod user;
 
 pub use self::error::{Error, Result};
 
