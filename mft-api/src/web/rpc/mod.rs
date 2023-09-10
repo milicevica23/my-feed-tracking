@@ -1,10 +1,17 @@
 // region:    --- Modules
 
+mod feeling_rpc;
 mod ingredient_rpc;
 
 use crate::ctx::Ctx;
 use crate::model::ModelManager;
-use crate::web::rpc::ingredient_rpc::create_ingredient;
+use crate::web::rpc::feeling_rpc::{
+    add_feeling_entry_to_user, add_feeling_to_user, create_feeling, list_feeling_by_user,
+};
+use crate::web::rpc::ingredient_rpc::{
+    add_ingredient_entry_to_user, add_ingredient_to_user, create_ingredient,
+    list_ingredient_by_user,
+};
 
 use crate::web::{Error, Result};
 use axum::extract::State;
@@ -107,6 +114,15 @@ async fn _rpc_handler(ctx: Ctx, mm: ModelManager, rpc_req: RpcRequest) -> Result
     let result_json: Value = match rpc_method.as_str() {
         // -- Task RPC methods.
         "create_ingredient" => exec_rpc_fn!(create_ingredient, ctx, mm, rpc_params),
+        "create_feeling" => exec_rpc_fn!(create_feeling, ctx, mm, rpc_params),
+        "list_ingredient_by_user" => exec_rpc_fn!(list_ingredient_by_user, ctx, mm),
+        "list_feelig_by_user" => exec_rpc_fn!(list_feeling_by_user, ctx, mm),
+        "add_feeling_to_user" => exec_rpc_fn!(add_feeling_to_user, ctx, mm, rpc_params),
+        "add_ingredient_to_user" => exec_rpc_fn!(add_ingredient_to_user, ctx, mm, rpc_params),
+        "add_feeling_entry_to_user" => exec_rpc_fn!(add_feeling_entry_to_user, ctx, mm, rpc_params),
+        "add_ingredient_entry_to_user" => {
+            exec_rpc_fn!(add_ingredient_entry_to_user, ctx, mm, rpc_params)
+        }
 
         // -- Fallback as Err.
         _ => return Err(Error::RpcMethodUnknown(rpc_method)),

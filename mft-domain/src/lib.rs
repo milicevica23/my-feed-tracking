@@ -1,3 +1,5 @@
+mod user;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Deserialize, Serialize)]

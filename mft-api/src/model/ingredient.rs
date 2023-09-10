@@ -24,10 +24,18 @@ pub struct IngredientForUpdate {
     pub name: String,
 }
 
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct IngredientEntry {
+    id: i64,
+    gram: i64,
+    timestamp: chrono::DateTime<chrono::Utc>,
+}
+
 pub struct IngredientBmc;
 
 impl DbBmc for IngredientBmc {
     const TABLE: &'static str = "ingredient";
+    const TABLE2USER: &'static str = "user_2_ingredient";
 }
 
 impl IngredientBmc {
@@ -55,6 +63,29 @@ impl IngredientBmc {
     pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()> {
         base::delete::<Self>(ctx, mm, id).await
     }
+
+    pub async fn list_by_user(ctx: &Ctx, mm: &ModelManager) -> Result<Vec<Ingredient>> {
+        base::list_by_user::<Self, _>(ctx, mm).await
+    }
+
+    pub async fn add_ingredient_to_user(ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<i64> {
+        base::add_to_user::<Self>(ctx, mm, id).await
+    }
+
+    pub async fn add_ingredient_entry_to_user(
+        ctx: &Ctx,
+        mm: &ModelManager,
+        entry: IngredientEntry,
+    ) -> Result<()> {
+        sqlx::query("INSERT INTO user_has_ingredient values($1,$2,$3,$4)")
+            .bind(ctx.user_id())
+            .bind(entry.id)
+            .bind(entry.gram)
+            .bind(entry.timestamp)
+            .execute(mm.db())
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -76,6 +107,7 @@ mod tests {
 
         let ing_c = IngredientForCreate {
             name: fx_name.to_string(),
+            allergy_information: "A".to_string(),
         };
         let id = IngredientBmc::create(&ctx, &mm, ing_c).await?;
         let (title,): (String,) = sqlx::query_as("SELECT name from tasks where id = $1")

@@ -21,6 +21,7 @@
 
 mod base;
 mod error;
+pub mod feeling;
 pub mod ingredient;
 mod store;
 pub mod user;

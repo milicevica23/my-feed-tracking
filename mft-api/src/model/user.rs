@@ -3,6 +3,7 @@ use crate::ctx::Ctx;
 use crate::model::base::{self, DbBmc};
 use crate::model::ModelManager;
 use crate::model::{Error, Result};
+use mft_domain::user::UserForCreate;
 use serde::{Deserialize, Serialize};
 use sqlb::{Fields, HasFields};
 use sqlx::postgres::PgRow;
@@ -14,12 +15,6 @@ use uuid::Uuid;
 pub struct User {
     pub id: i64,
     pub username: String,
-}
-
-#[derive(Deserialize)]
-pub struct UserForCreate {
-    pub username: String,
-    pub pwd_clear: String,
 }
 
 #[derive(Fields)]
@@ -60,6 +55,7 @@ pub struct UserBmc;
 
 impl DbBmc for UserBmc {
     const TABLE: &'static str = "user";
+    const TABLE2USER: &'static str = "user_2_user";
 }
 
 impl UserBmc {
@@ -68,6 +64,21 @@ impl UserBmc {
         E: UserBy,
     {
         base::get::<Self, _>(ctx, mm, id).await
+    }
+
+    pub async fn register_user(ctx: &Ctx, mm: &ModelManager, user_c: UserForCreate) -> Result<()> {
+        //TODO problem if fails
+        sqlx::query("INSERT INTO \"user\" (username) VALUES ('$1') returning id")
+            .bind(&user_c.username)
+            .fetch_one(mm.db())
+            .await?;
+
+        let user: User = UserBmc::first_by_username::<User>(ctx, mm, &user_c.username)
+            .await?
+            .unwrap();
+
+        UserBmc::update_pwd(ctx, mm, user.id, &user_c.pwd_clear);
+        Ok(())
     }
 
     pub async fn first_by_username<E>(

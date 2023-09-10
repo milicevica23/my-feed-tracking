@@ -2,7 +2,9 @@
 
 ##Secrets
 RUST_LOG = "mft_api=debug"
+#RUST_BACKTRACE = 1
 
+DATABASE_URL = "postgres://app_user:dev_only_pwd@localhost/mft"
 SERVICE_DB_URL = "postgres://app_user:dev_only_pwd@localhost/mft"
 
 SERVICE_PWD_KEY = "CKUGFOD9_2Qf6Pn3ZFRYgPYb8ht4vKqEG9PGMXTB7497bT0367DjoaD6ydFnEVaIRda0kKeBZVCT5Hb62m2sCA"

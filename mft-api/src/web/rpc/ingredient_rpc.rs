@@ -1,5 +1,8 @@
 use crate::ctx::Ctx;
-use crate::model::ingredient::{Ingredient, IngredientBmc, IngredientForCreate};
+use crate::model::feeling::Feeling;
+use crate::model::ingredient::{
+    self, Ingredient, IngredientBmc, IngredientEntry, IngredientForCreate,
+};
 use crate::model::ModelManager;
 use crate::web::rpc::{ParamsForCreate, ParamsForUpdate, ParamsIded};
 use crate::web::Result;
@@ -15,6 +18,31 @@ pub async fn create_ingredient(
     let task = IngredientBmc::get(&ctx, &mm, id).await?;
 
     Ok(task)
+}
+pub async fn list_ingredient_by_user(ctx: Ctx, mm: ModelManager) -> Result<Vec<Ingredient>> {
+    let ingredient = IngredientBmc::list_by_user(&ctx, &mm).await?;
+
+    Ok(ingredient)
+}
+
+pub async fn add_ingredient_to_user(ctx: Ctx, mm: ModelManager, params: ParamsIded) -> Result<()> {
+    let ParamsIded { id } = params;
+
+    IngredientBmc::add_ingredient_to_user(&ctx, &mm, id).await?;
+
+    Ok(())
+}
+
+pub async fn add_ingredient_entry_to_user(
+    ctx: Ctx,
+    mm: ModelManager,
+    params: ParamsForCreate<IngredientEntry>,
+) -> Result<()> {
+    let ParamsForCreate { data } = params;
+
+    let id = IngredientBmc::add_ingredient_entry_to_user(&ctx, &mm, data).await?;
+
+    Ok(())
 }
 
 // pub async fn list_tasks(ctx: Ctx, mm: ModelManager) -> Result<Vec<Task>> {
