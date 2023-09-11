@@ -1,14 +1,18 @@
 use crate::crypt::{pwd, EncryptContent};
 use crate::ctx::Ctx;
-use crate::model::user::{UserBmc, UserForCreate, UserForLogin};
+use crate::model::user::{UserBmc, UserForLogin};
 use crate::model::ModelManager;
-use crate::web::{self, remove_token_cookie, Error, Result};
+use crate::web::mw_auth::CtxExtError;
+use crate::web::{self, remove_token_cookie, Error, Result, AUTH_TOKEN};
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
+use mft_domain::user::LoginPayload;
+use mft_domain::user::UserForCreate;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::debug;
 
 pub fn routes(mm: ModelManager) -> Router {
@@ -16,6 +20,7 @@ pub fn routes(mm: ModelManager) -> Router {
         .route("/api/login", post(api_login_handler))
         .route("/api/register", post(api_register_handler))
         .route("/api/logoff", post(api_logoff_handler))
+        .layer(CorsLayer::permissive())
         .with_state(mm)
 }
 
@@ -25,7 +30,7 @@ async fn api_register_handler(
     Json(user_c): Json<UserForCreate>,
 ) -> Result<Json<Value>> {
     debug!("{:<12} - api_register_handler", "HANDLER");
-
+    debug!("{:#?} - api_register_handler", user_c);
     let root_ctx = Ctx::root_ctx();
     let res = UserBmc::register_user(&root_ctx, &mm, user_c).await;
 
@@ -76,21 +81,24 @@ async fn api_login_handler(
     // -- Set web token.
     web::set_token_cookie(&cookies, &user.username, &user.token_salt.to_string())?;
 
+    // -- Get Token String
+    let token = cookies
+        .get(AUTH_TOKEN)
+        .map(|c| c.value().to_string())
+        .ok_or(CtxExtError::TokenNotInCookie)
+        .unwrap();
+
     // Create the success body.
     let body = Json(json!({
         "result": {
-            "success": true
+            "success": true,
+            "access_token": token
         }
     }));
 
     Ok(body)
 }
 
-#[derive(Debug, Deserialize)]
-struct LoginPayload {
-    username: String,
-    pwd: String,
-}
 // endregion: --- Login
 
 // region:    --- Logoff

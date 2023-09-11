@@ -1,12 +1,19 @@
-use super::types::{ErrorResponse, User, UserLoginResponse, UserResponse};
+use super::types::{ErrorResponse, UserLoginResponse};
 use reqwasm::http;
+use mft_domain::user::LoginPayload;
+use mft_domain::user::UserForCreate;
 
-const BACKEND_URL: str 'static = "http://localhost:8000/"
+const BACKEND_URL: &'static str= "http://localhost:8080/";
 
-pub async fn api_register_user(user_data: &str) -> Result<User, String> {
-    let response = match http::Request::post(format!("{}{}",BACKEND_URL, "api/auth/register")
+pub async fn api_register_user(username: String, pwd_clear: String) -> Result<(), String> {
+    let user = UserForCreate{
+        username: username.to_string(),
+        pwd_clear: pwd_clear.to_string(),
+    };
+
+    let response = match http::Request::post(&format!("{}{}",BACKEND_URL, "api/register"))
         .header("Content-Type", "application/json")
-        .body(user_data)
+        .body(serde_json::to_string(&user).unwrap())
         .send()
         .await
     {
@@ -22,19 +29,22 @@ pub async fn api_register_user(user_data: &str) -> Result<User, String> {
             return Err(format!("API error: {}", response.status()));
         }
     }
-
-    let res_json = response.json::<UserResponse>().await;
-    match res_json {
-        Ok(data) => Ok(data.data.user),
-        Err(_) => Err("Failed to parse response".to_string()),
-    }
+    Ok(())
+    // let res_json = response.json::<UserResponse>().await;
+    // match res_json {
+    //     Ok(data) => Ok(data.data.user),
+    //     Err(_) => Err("Failed to parse response".to_string()),
+    // }
 }
 
-pub async fn api_login_user(credentials: &str) -> Result<UserLoginResponse, String> {
-    let response = match http::Request::post("http://localhost:8000/api/auth/login")
+pub async fn api_login_user(username: String, pwd_clear: String) -> Result<UserLoginResponse, String> {
+    let login_payload = LoginPayload {
+        username: username,
+        pwd: pwd_clear,
+    }; 
+    let response = match http::Request::post(&format!("{}{}",BACKEND_URL, "api/auth/login"))
         .header("Content-Type", "application/json")
-        .credentials(http::RequestCredentials::Include)
-        .body(credentials)
+        .body(serde_json::to_string(&login_payload).unwrap())
         .send()
         .await
     {
