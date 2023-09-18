@@ -90,10 +90,9 @@ async fn api_login_handler(
 
     // Create the success body.
     let body = Json(json!({
-        "result": {
-            "success": true,
-            "access_token": token
-        }
+            "id": user_id,
+            "name": username,
+            "access_token": token,
     }));
 
     Ok(body)

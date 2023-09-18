@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlb::{Fields, HasFields};
 use sqlx::postgres::PgRow;
 use sqlx::FromRow;
+use tracing::debug;
 use uuid::Uuid;
 
 // region:    --- User Types
@@ -68,16 +69,17 @@ impl UserBmc {
 
     pub async fn register_user(ctx: &Ctx, mm: &ModelManager, user_c: UserForCreate) -> Result<()> {
         //TODO problem if fails
-        sqlx::query("INSERT INTO \"user\" (username) VALUES ('$1') returning id")
+        sqlx::query("INSERT INTO \"user\" (username) VALUES ($1)")
             .bind(&user_c.username)
-            .fetch_one(mm.db())
+            .execute(mm.db())
             .await?;
 
         let user: User = UserBmc::first_by_username::<User>(ctx, mm, &user_c.username)
             .await?
             .unwrap();
 
-        UserBmc::update_pwd(ctx, mm, user.id, &user_c.pwd_clear);
+        debug!("{:#?} - api_insert", user);
+        UserBmc::update_pwd(ctx, mm, user.id, &user_c.pwd_clear).await?;
         Ok(())
     }
 
@@ -108,7 +110,9 @@ impl UserBmc {
             content: pwd_clear.to_string(),
             salt: user.pwd_salt.to_string(),
         })?;
-
+        debug!("{:#?} - update", pwd);
+        debug!("{:#?} - update", user);
+        debug!("{:#?} - update", id);
         sqlb::update()
             .table(Self::TABLE)
             .and_where("id", "=", id)
