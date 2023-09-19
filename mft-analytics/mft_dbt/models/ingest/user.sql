@@ -1,0 +1,1 @@
+SELECT * FROM mft_raw.user

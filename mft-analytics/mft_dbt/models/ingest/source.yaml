@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: mft_raw_source
+    schema: mft_raw
+    tables:
+      - name: feeling
+      - name: user_2_feeling

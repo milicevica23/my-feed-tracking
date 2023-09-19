@@ -1,0 +1,1 @@
+SELECT * FROM {{source("mft_raw_source","user_2_feeling")}}
